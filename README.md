@@ -1,5 +1,11 @@
-# eprjTools
-嘉立创EDA工程管理工具
+<h1 align="center">eprjTools</h1>
+<p align=center>嘉立创EDA工程管理工具</p>
+<p align=center>
+  <img src="https://img.shields.io/github/stars/klxf/eprjTools"> 
+  <img src="https://img.shields.io/github/v/release/klxf/eprjTools"> 
+  <img src="https://img.shields.io/github/downloads/klxf/eprjTools/total"> 
+  <img src="https://img.shields.io/github/license/klxf/eprjTools"> 
+</p>
 
 ## 功能
 
