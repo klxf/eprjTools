@@ -15,7 +15,8 @@
 - 文档预览：可预览工程内的文档
 
 ## 截图
-![5509f1f5f9f62ba2a8a4781ab1ae0d1](https://github.com/user-attachments/assets/a26b0ae4-9055-4b8e-9647-24c22f75429c)
+![20241215-215702](https://github.com/user-attachments/assets/570aeb9c-2474-4e04-9a06-1f30e7ef4ff8)
+
 
 ## 开源许可与版权信息
 - 本项目使用 [MIT License](https://choosealicense.com/licenses/mit/) 开源许可协议
