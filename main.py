@@ -10,27 +10,43 @@ import base64
 import io
 import shutil
 import yaml
+import winreg
 
 icon_path = os.path.join(os.path.dirname(__file__), 'icon.ico')
 
 
 def get_project_directory():
     config_file = 'config.yaml'
+    config = {}
+
     if not os.path.exists(config_file):
         project_directory = filedialog.askdirectory(title="请选择工程目录")
         if project_directory:
+            config['project_directory'] = project_directory
             with open(config_file, 'w') as file:
-                yaml.dump({'project_directory': project_directory}, file)
-        else:
-            messagebox.showerror("错误", "未选择工程目录")
-            exit()
+                yaml.dump(config, file)
     else:
         with open(config_file, 'r') as file:
             config = yaml.safe_load(file)
             project_directory = config.get('project_directory')
             if not project_directory:
                 messagebox.showerror("错误", "配置文件中未找到工程目录")
-                exit()
+
+    if 'openeprj_cmd' not in config:
+        try:
+            with winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, r"LCEDA.Library.File\shell\open\commanda") as key:
+                openeprj_cmd = winreg.QueryValue(key, None)
+                config['openeprj_cmd'] = openeprj_cmd
+        except FileNotFoundError:
+            lceda_pro_path = filedialog.askopenfilename(title="请选择立创EDA（lceda-pro.exe）安装位置", filetypes=[("嘉立创EDA", "lceda-pro.exe")])
+            if lceda_pro_path:
+                config['openeprj_cmd'] = f'"{lceda_pro_path}" "%1"'
+            else:
+                messagebox.showwarning("警告", "未选择lceda-pro.exe安装位置，需要选择lceda-pro.exe安装位置后才能打开工程")
+
+        with open(config_file, 'w') as file:
+            yaml.dump(config, file)
+
     return project_directory
 
 
@@ -121,8 +137,8 @@ def on_details_click():
         treeview.insert("", tk.END, values=("包含器件数", device_count))
 
         cursor.execute("SELECT COUNT(*) FROM resources")
-        device_count = cursor.fetchone()[0]
-        treeview.insert("", tk.END, values=("包含图片数", device_count))
+        resource_count = cursor.fetchone()[0]
+        treeview.insert("", tk.END, values=("包含资源数", resource_count))
     except sqlite3.Error as e:
         print(f"Database error: {e}")
     except Exception as e:
@@ -188,7 +204,7 @@ def display_image(uuid, db_path, title):
             canvas.create_image(0, 0, anchor=tk.NW, image=image_tk)
             canvas.config(scrollregion=canvas.bbox(tk.ALL))
         else:
-            messagebox.showerror("错误", "无法预览该文档", icon='warning')
+            messagebox.showwarning("警告", "无法预览该文档，请在嘉立创EDA重新保存该文档")
     except sqlite3.Error as e:
         print(f"Database error: {e}")
     except Exception as e:
@@ -289,6 +305,33 @@ def on_delete_click():
 
     populate_listbox(eprj_listbox, list_eprj_files(directory))
     # messagebox.showinfo("信息", "项目已成功删除")
+
+
+def on_open_click():
+    with open('config.yaml', 'r') as file:
+        config = yaml.safe_load(file)
+        openeprj_cmd = config.get('openeprj_cmd')
+        if openeprj_cmd:
+            selected_items = eprj_listbox.curselection()
+            if not selected_items:
+                messagebox.showwarning("警告", "请选择一个工程进行打开")
+                return
+            selected_file = eprj_listbox.get(selected_items[0])
+            file_to_open = os.path.join(directory, selected_file)
+            try:
+                os.startfile(file_to_open)
+            except Exception as e:
+                messagebox.showerror("错误", f"打开文件时出错: {e}")
+        else:
+            messagebox.showwarning("警告", "无法打开工程，未找到lceda-pro.exe安装位置")
+            lceda_pro_path = filedialog.askopenfilename(title="请选择立创EDA（lceda-pro.exe）安装位置", filetypes=[("嘉立创EDA", "lceda-pro.exe")])
+            if lceda_pro_path:
+                config['openeprj_cmd'] = f'"{lceda_pro_path}" "%1"'
+                with open('config.yaml', 'w') as file:
+                    yaml.dump(config, file)
+            else:
+                messagebox.showwarning("错误", "未选择lceda-pro.exe安装位置，需要选择lceda-pro.exe安装位置后才能打开工程")
+
 
 
 def on_open_wastebasket_click():
@@ -408,13 +451,16 @@ def main():
     delete_button = ttk.Button(right_top_frame, text="删除", command=on_delete_click, style='danger.TButton')
     delete_button.pack(side=tk.LEFT, padx=5)
 
+    open_project_button = ttk.Button(right_top_frame, text="打开", command=on_open_click, style='success.TButton')
+    open_project_button.pack(side=tk.LEFT, padx=5)
+
     details_button = ttk.Button(right_top_frame, text="详细", command=on_details_click, style='success.TButton')
     details_button.pack(side=tk.LEFT, padx=5)
 
     open_button = ttk.Button(right_top_frame, text="回收站", command=on_open_wastebasket_click, style='info.TButton')
     open_button.pack(side=tk.LEFT, padx=5)
 
-    open_button = ttk.Button(right_top_frame, text="打开目录", command=reselect_project_directory, style='info.TButton')
+    open_button = ttk.Button(right_top_frame, text="选择目录", command=reselect_project_directory, style='info.TButton')
     open_button.pack(side=tk.LEFT, padx=5)
 
     eprj_treeview = ttk.Treeview(right_bottom_frame, show="tree")
