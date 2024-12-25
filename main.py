@@ -333,6 +333,139 @@ def on_open_click():
                 messagebox.showwarning("错误", "未选择lceda-pro.exe安装位置，需要选择lceda-pro.exe安装位置后才能打开工程")
 
 
+def open_tools_windows():
+    top = Toplevel()
+    top.title("小工具")
+    top.geometry("400x400")
+    top.resizable(False, False)
+    top.iconbitmap(icon_path)
+
+    frame = ttk.Frame(top, padding="10")
+    frame.pack(fill=tk.BOTH, expand=True)
+
+    def open_imagetool():
+        imagetool = Toplevel()
+        imagetool.title("预览图批量导出工具")
+        imagetool.geometry("260x400")
+        imagetool.resizable(False, False)
+        imagetool.iconbitmap(icon_path)
+
+        imagetool_frame = ttk.Frame(imagetool, padding="10")
+        imagetool_frame.pack(fill=tk.BOTH, expand=True)
+
+        # 列表框
+        listbox_frame = ttk.Frame(imagetool_frame)
+        listbox_frame.pack(fill=tk.BOTH, expand=True)
+
+        listbox_scrollbar = ttk.Scrollbar(listbox_frame, orient="vertical")
+        listbox_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        eprj_listbox = tk.Listbox(listbox_frame, selectmode=tk.EXTENDED, yscrollcommand=listbox_scrollbar.set)
+        eprj_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        listbox_scrollbar.config(command=eprj_listbox.yview)
+
+        # 列出所有工程
+        eprj_files = list_eprj_files(directory)
+        for file in eprj_files:
+            eprj_listbox.insert(tk.END, file)
+
+        # 复选框
+        sch_var = tk.BooleanVar()
+        pcb_var = tk.BooleanVar()
+
+        sch_checkbox = ttk.Checkbutton(imagetool_frame, text="SCH", variable=sch_var)
+        sch_checkbox.pack(side=tk.LEFT, padx=5, pady=5)
+
+        pcb_checkbox = ttk.Checkbutton(imagetool_frame, text="PCB", variable=pcb_var)
+        pcb_checkbox.pack(side=tk.LEFT, padx=5, pady=5)
+
+        # 导出按钮的函数
+        def export_selected():
+            selected_files = [eprj_listbox.get(i) for i in eprj_listbox.curselection()]
+            export_sch = sch_var.get()
+            export_pcb = pcb_var.get()
+
+            if not selected_files:
+                messagebox.showwarning("警告", "请选择一个或多个工程进行导出")
+                return
+
+            export_directory = filedialog.askdirectory(title="请选择导出目录")
+            if not export_directory:
+                messagebox.showwarning("警告", "未选择导出目录")
+                return
+
+            missing_images = []
+
+            progress_window = Toplevel()
+            progress_window.title("导出进度")
+            progress_window.geometry("300x100")
+            progress_window.resizable(False, False)
+            progress_window.iconbitmap(icon_path)
+
+            progress_label = ttk.Label(progress_window, text="正在导出...")
+            progress_label.pack(pady=10)
+
+            progress_bar = ttk.Progressbar(progress_window, orient="horizontal", length=200, mode="determinate")
+            progress_bar.pack(pady=10)
+
+            total_files = len(selected_files)
+            progress_bar["maximum"] = total_files
+
+            for index, file in enumerate(selected_files):
+                db_path = os.path.join(directory, file)
+                try:
+                    conn = sqlite3.connect(db_path)
+                    cursor = conn.cursor()
+                    name = file.replace('.eprj', '')
+
+                    if export_sch:
+                        cursor.execute("SELECT display_title, image FROM documents WHERE docType = 1")
+                        rows = cursor.fetchall()
+                        for row in rows:
+                            display_title, image_data = row
+                            if image_data:
+                                save_image(export_directory, "SCH", name, display_title, image_data)
+                            else:
+                                missing_images.append((file, display_title, "SCH"))
+
+                    if export_pcb:
+                        cursor.execute("SELECT display_title, image FROM documents WHERE docType = 3")
+                        rows = cursor.fetchall()
+                        for row in rows:
+                            display_title, image_data = row
+                            if image_data:
+                                save_image(export_directory, "PCB", name, display_title, image_data)
+                            else:
+                                missing_images.append((file, display_title, "PCB"))
+
+                except sqlite3.Error as e:
+                    messagebox.showerror("错误", f"数据库错误: {e}")
+                except Exception as e:
+                    messagebox.showerror("错误", f"导出时出错: {e}")
+                finally:
+                    conn.close()
+
+                progress_bar["value"] = index + 1
+                progress_window.update_idletasks()
+
+            progress_window.destroy()
+
+            if missing_images:
+                missing_images_str = "\n".join([f"{file} - {display_title} ({doc_type})" for file, display_title, doc_type in missing_images])
+                messagebox.showwarning("警告", f"以下文档没有图片数据，请在嘉立创 EDA 保存一次后再试！\n{missing_images_str}")
+
+        def save_image(directory, doc_type, name, display_title, image_data):
+            if image_data.startswith("data:image/webp;base64,"):
+                image_data = image_data[len("data:image/webp;base64,"):]
+            image = Image.open(io.BytesIO(base64.b64decode(image_data)))
+            file_path = os.path.join(directory, f"[{doc_type}]{name}.{display_title}.png")
+            image.save(file_path, "PNG")
+
+        export_button = ttk.Button(imagetool_frame, text="导出", command=export_selected)
+        export_button.pack(side=tk.BOTTOM, pady=10)
+
+    open_imagetool_button = ttk.Button(frame, text="预览图批量导出", command=open_imagetool, style='info.TButton')
+    open_imagetool_button.pack(side=tk.TOP, padx=5)
 
 def on_open_wastebasket_click():
     wastebasket_path = os.path.join(directory, '.wastebasket')
@@ -457,11 +590,14 @@ def main():
     details_button = ttk.Button(right_top_frame, text="详细", command=on_details_click, style='success.TButton')
     details_button.pack(side=tk.LEFT, padx=5)
 
-    open_button = ttk.Button(right_top_frame, text="回收站", command=on_open_wastebasket_click, style='info.TButton')
-    open_button.pack(side=tk.LEFT, padx=5)
+    open_wastebasket_button = ttk.Button(right_top_frame, text="回收站", command=on_open_wastebasket_click, style='info.TButton')
+    open_wastebasket_button.pack(side=tk.LEFT, padx=5)
 
-    open_button = ttk.Button(right_top_frame, text="选择目录", command=reselect_project_directory, style='info.TButton')
-    open_button.pack(side=tk.LEFT, padx=5)
+    reselect_project_button = ttk.Button(right_top_frame, text="选择目录", command=reselect_project_directory, style='info.TButton')
+    reselect_project_button.pack(side=tk.LEFT, padx=5)
+
+    open_tools_button = ttk.Button(right_top_frame, text="小工具", command=open_tools_windows, style='info.TButton')
+    open_tools_button.pack(side=tk.LEFT, padx=5)
 
     eprj_treeview = ttk.Treeview(right_bottom_frame, show="tree")
     eprj_treeview.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
