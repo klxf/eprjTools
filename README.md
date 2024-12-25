@@ -21,3 +21,4 @@
 ## 开源许可与版权信息
 - 本项目使用 [MIT License](https://choosealicense.com/licenses/mit/) 开源许可协议
 - “**嘉立创**”是深圳嘉立创科技集团股份有限公司的注册商标，本软件与嘉立创集团无从属关系，指示性合理使用该商标
+- 本项目使用了 [:octocat: GitHub Copilot](https://github.com/copilot)
