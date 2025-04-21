@@ -1,3 +1,4 @@
+import os
 import tkinter as tk
 from tkinter import ttk, Canvas
 from PIL import Image, ImageTk
@@ -9,6 +10,7 @@ class DocumentPreviewWindow:
     def __init__(self, parent, title, uuid, image_data):
         self.top = tk.Toplevel(parent) if parent else tk.Toplevel()
         self.top.title(f"{title} - {uuid}")
+        self.top.iconbitmap(os.path.join(os.path.dirname(__file__), '..', 'icon.ico'))
 
         # 设置窗口大小为屏幕的一半
         screen_width = self.top.winfo_screenwidth()

@@ -1,3 +1,4 @@
+import os
 import tkinter as tk
 from tkinter import ttk
 from utils.database import DatabaseManager
@@ -7,7 +8,14 @@ class DetailsWindow:
     def __init__(self, parent):
         self.top = tk.Toplevel(parent)
         self.top.title("工程详细信息")
-        self.top.geometry("300x400")
+        self.top.iconbitmap(os.path.join(os.path.dirname(__file__), '..', 'icon.ico'))
+        window_width = 300
+        window_height = 400
+        screen_width = self.top.winfo_screenwidth()
+        screen_height = self.top.winfo_screenheight()
+        x = (screen_width - window_width) // 2
+        y = (screen_height - window_height) // 2
+        self.top.geometry(f"{window_width}x{window_height}+{x}+{y}")
         self.top.resizable(False, False)
 
         self.setup_ui()

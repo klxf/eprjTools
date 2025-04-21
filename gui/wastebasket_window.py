@@ -1,3 +1,4 @@
+import os
 import tkinter as tk
 from tkinter import ttk
 from utils.file_operations import list_eprj_files
@@ -7,7 +8,14 @@ class WastebasketWindow:
     def __init__(self, parent, directory, main_window):
         self.top = tk.Toplevel(parent)
         self.top.title("回收站")
-        self.top.geometry("260x400")
+        self.top.iconbitmap(os.path.join(os.path.dirname(__file__), '..', 'icon.ico'))
+        window_width = 260
+        window_height = 400
+        screen_width = self.top.winfo_screenwidth()
+        screen_height = self.top.winfo_screenheight()
+        x = (screen_width - window_width) // 2
+        y = (screen_height - window_height) // 2
+        self.top.geometry(f"{window_width}x{window_height}+{x}+{y}")
         self.top.resizable(False, False)
         
         self.directory = directory

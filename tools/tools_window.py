@@ -1,6 +1,8 @@
+import os
 import tkinter as tk
 from tkinter import ttk
 from .image_exporter import ImageExporterTool
+from .eda_version_checker import VersionCheckerTool
 
 
 class ToolsWindow:
@@ -12,12 +14,14 @@ class ToolsWindow:
 
         self.directory = directory
         self.tools = self._register_tools()
+        self.top.iconbitmap(os.path.join(os.path.dirname(__file__), '..', 'icon.ico'))
         self.setup_ui()
 
     def _register_tools(self):
         """注册所有可用的工具"""
         return [
-            ImageExporterTool
+            ImageExporterTool,
+            VersionCheckerTool,
         ]
 
     def setup_ui(self):
