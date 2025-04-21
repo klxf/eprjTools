@@ -1,11 +1,11 @@
 import os
 import tkinter as tk
 from tkinter import ttk, messagebox
-from .tools_window import ToolsWindow
 from .wastebasket_window import WastebasketWindow
 from .details_window import DetailsWindow
 from utils.project_manager import ProjectManager
 from utils.file_operations import list_eprj_files
+from tools.tools_window import ToolsWindow
 
 
 class MainWindow:
