@@ -1,5 +1,17 @@
 # -*- mode: python ; coding: utf-8 -*-
+import re
 
+def get_version():
+    with open('version.txt', 'r') as f:
+        content = f.read()
+        match = re.search(r'FileVersion.*?(\d+\.\d+\.\d+)', content)
+        if match:
+            version = match.group(1)
+        else:
+            version = '0.0.0'
+    return version
+
+version = get_version()
 
 a = Analysis(
     ['main.py'],
@@ -22,7 +34,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='eprjTools',
+    name=f'eprjTools v{version}',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
