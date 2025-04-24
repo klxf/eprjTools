@@ -136,6 +136,23 @@ class ProjectManager:
         except Exception as e:
             messagebox.showerror("错误", f"显示预览图时出错: {str(e)}")
 
+    def open_project(self, listbox):
+        selected_items = listbox.curselection()
+        if not selected_items:
+            messagebox.showwarning("警告", "请选择一个工程进行打开")
+            return
+
+        if len(selected_items) > 1:
+            messagebox.showwarning("警告", "只能选择一个工程进行打开")
+            return
+
+        selected_file = listbox.get(selected_items[0])
+        try:
+            os.startfile(os.path.join(self.directory, selected_file))
+        except Exception as e:
+            messagebox.showerror("错误", f"打开工程时出错: {str(e)}")
+            return
+
     def delete_projects(self, listbox):
         if not self.directory:
             messagebox.showerror("错误", "工程目录未设置")
