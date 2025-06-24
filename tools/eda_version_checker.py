@@ -1,7 +1,9 @@
+import shutil
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
 import requests
 import threading
+import tempfile
 import os
 from tkinter import filedialog
 import platform
@@ -67,7 +69,7 @@ class VersionCheckerWindow:
         labels = ["第三段起始值:", "第三段结束值:",
                   "第四段起始值:", "第四段结束值:"]
         entries = []
-        default_values = ["38", "40", "0", "10"]
+        default_values = ["40", "42", "0", "9"]
 
         for i, (label, default) in enumerate(zip(labels, default_values)):
             ttk.Label(settings_frame, text=label).grid(row=i, column=0,
@@ -216,41 +218,94 @@ class VersionCheckerWindow:
             self.check_button.config(state=tk.NORMAL, text="检查版本")
 
     def download_file(self, url, save_path, version):
-        """在单独的线程中下载文件"""
+        """在单独的线程中下载文件，使用分块下载并保存在临时文件夹"""
+        temp_file = None
         try:
             self.output_text.insert(tk.END, f"开始下载版本 {version}...\n")
             self.output_text.see(tk.END)
 
+            # 创建临时文件
+            temp_fd, temp_path = tempfile.mkstemp(suffix='.tmp', prefix='lceda_')
+            os.close(temp_fd)
+            temp_file = temp_path
+
+            # 获取文件大小
             response = requests.get(url, stream=True)
             response.raise_for_status()
-
             total_size = int(response.headers.get('content-length', 0))
-            block_size = 1024 * 1024  # 使用1MB的块大小
-            downloaded = 0
 
+            if total_size == 0:
+                raise Exception("无法获取文件大小")
+
+            # 设置分块大小和数量
+            chunk_size = 1024 * 1024 * 5  # 5MB 每块
+            num_chunks = total_size // chunk_size + (1 if total_size % chunk_size else 0)
+
+            # 初始化进度条
             self.download_progress_bar['maximum'] = total_size
             self.download_progress_bar['value'] = 0
             self.download_progress_bar.pack(fill=tk.X, pady=10)
 
-            with open(save_path, 'wb') as file:
-                for data in response.iter_content(block_size):
+            downloaded = 0
+            chunks = []
+
+            # 创建临时文件列表用于存储分块
+            temp_chunks = []
+            for chunk_num in range(num_chunks):
+                chunk_fd, chunk_path = tempfile.mkstemp(suffix=f'.chunk{chunk_num}', prefix='lceda_')
+                os.close(chunk_fd)
+                temp_chunks.append(chunk_path)
+                chunks.append({'start': chunk_num * chunk_size,
+                               'end': min((chunk_num + 1) * chunk_size - 1, total_size - 1),
+                               'path': chunk_path})
+
+            # 下载每个分块
+            for i, chunk in enumerate(chunks):
+                if not self._running:
+                    raise Exception("下载已取消")
+
+                headers = {'Range': f'bytes={chunk["start"]}-{chunk["end"]}'}
+                response = requests.get(url, headers=headers, stream=True)
+                response.raise_for_status()
+
+                with open(chunk['path'], 'wb') as f:
+                    for data in response.iter_content(1024 * 1024):  # 1MB 读取缓冲
+                        if not self._running:
+                            raise Exception("下载已取消")
+                        f.write(data)
+                        downloaded += len(data)
+                        self.download_progress_bar['value'] = downloaded
+
+                        # 显示下载进度百分比
+                        percent = (downloaded / total_size) * 100
+                        self.output_text.delete("end-2c linestart", "end-1c lineend")
+                        self.output_text.insert(tk.END,
+                                                f"正在下载版本 {version}... {percent:.1f}%\n")
+                        self.output_text.see(tk.END)
+                        self.top.update_idletasks()
+
+            # 合并所有分块到临时文件
+            with open(temp_file, 'wb') as outfile:
+                for chunk in chunks:
                     if not self._running:
                         raise Exception("下载已取消")
-                    file.write(data)
-                    downloaded += len(data)
-                    self.download_progress_bar['value'] = downloaded
-                    # 显示下载进度百分比
-                    percent = (downloaded / total_size) * 100
-                    self.output_text.delete("end-2c linestart", "end-1c lineend")
-                    self.output_text.insert(tk.END,
-                                            f"正在下载版本 {version}... {percent:.1f}%\n")
-                    self.output_text.see(tk.END)
-                    self.top.update_idletasks()
+                    with open(chunk['path'], 'rb') as infile:
+                        shutil.copyfileobj(infile, outfile)
+
+            # 验证文件大小
+            actual_size = os.path.getsize(temp_file)
+            if actual_size != total_size:
+                raise Exception(f"文件大小不匹配 (预期: {total_size}, 实际: {actual_size})")
+
+            # 移动临时文件到最终位置
+            shutil.move(temp_file, save_path)
+            temp_file = None  # 防止finally中删除已移动的文件
 
             self.output_text.insert(tk.END,
                                     f"版本 {version} 下载完成，保存到: {save_path}\n")
             self.output_text.see(tk.END)
 
+            # 如果选择了自动打开选项
             if self.auto_open_var.get():
                 system = platform.system()
                 if system == "Windows":
@@ -274,7 +329,24 @@ class VersionCheckerWindow:
                     os.remove(save_path)
                 except:
                     pass
+
         finally:
+            # 清理临时文件
+            if temp_file and os.path.exists(temp_file):
+                try:
+                    os.remove(temp_file)
+                except:
+                    pass
+
+            # 清理分块临时文件
+            if 'temp_chunks' in locals():
+                for chunk_path in temp_chunks:
+                    try:
+                        if os.path.exists(chunk_path):
+                            os.remove(chunk_path)
+                    except:
+                        pass
+
             self.download_progress_bar.pack_forget()
             self._running = False
             self.output_text.see(tk.END)
