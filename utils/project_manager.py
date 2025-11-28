@@ -11,6 +11,7 @@ class ProjectManager:
         self.config = load_config()
         self.directory = None
         self.current_db_path = None
+        self.v3 = False
 
     def set_directory(self, directory):
         """设置工作目录"""
@@ -22,6 +23,7 @@ class ProjectManager:
             return
 
         selected_file = event.widget.get(event.widget.curselection())
+        self.v3 = selected_file.endswith('.eprj2')
         self.current_db_path = os.path.join(self.directory, selected_file)
         self.display_tree_structure(selected_file, treeview)
 
@@ -35,11 +37,17 @@ class ProjectManager:
         if " (UUID:" in item_text:
             title, uuid = item_text.split(" (UUID:")
             uuid = uuid.rstrip(")")
-            self.display_document_preview(title.strip(), uuid)
+            if not self.v3:
+                self.display_document_preview(title.strip(), uuid)
+            elif self.v3:
+                self.display_document_preview_v3(title.strip(), uuid)
 
     def display_tree_structure(self, file_name, treeview):
         for item in treeview.get_children():
             treeview.delete(item)
+
+        if self.v3:
+            messagebox.showinfo("提示", "暂不支持读取纯 V3 文档，\n仅支持读取自 V2 转为 V3 的文档")
 
         db_path = os.path.join(self.directory, file_name)
         db_manager = DatabaseManager(db_path)
@@ -131,6 +139,28 @@ class ProjectManager:
                 return
 
             # 创建预览窗口
+            preview_window = DocumentPreviewWindow(None, title, uuid, image_data[0][0])
+
+        except Exception as e:
+            messagebox.showerror("错误", f"显示预览图时出错: {str(e)}")
+
+    def display_document_preview_v3(self, title, uuid):
+        """显示文档预览(V3)"""
+        if not self.directory or not hasattr(self, 'current_db_path'):
+            messagebox.showerror("错误", "无法加载预览图")
+            return
+
+        try:
+            db_manager = DatabaseManager(self.current_db_path)
+            image_data = db_manager.execute_query(
+                "SELECT image_data FROM project_images WHERE uuid=?",
+                (uuid,)
+            )
+
+            if not image_data or not image_data[0][0]:
+                messagebox.showwarning("警告", "无法预览该文档，请在嘉立创EDA重新保存该文档")
+                return
+
             preview_window = DocumentPreviewWindow(None, title, uuid, image_data[0][0])
 
         except Exception as e:

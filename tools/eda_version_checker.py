@@ -14,11 +14,11 @@ from .base import BaseTool
 class VersionCheckerTool(BaseTool):
     @property
     def name(self):
-        return "EDA版本检索"
+        return "EDA版本检索(V2.2)"
 
     @property
     def description(self):
-        return "检查和下载嘉立创EDA专业版的各个版本"
+        return "检查和下载嘉立创EDA专业版(V2.2)的各个版本"
 
     def create_window(self):
         self.window = VersionCheckerWindow(self.parent)
@@ -69,7 +69,7 @@ class VersionCheckerWindow:
         labels = ["第三段起始值:", "第三段结束值:",
                   "第四段起始值:", "第四段结束值:"]
         entries = []
-        default_values = ["40", "42", "0", "9"]
+        default_values = ["42", "45", "0", "9"]
 
         for i, (label, default) in enumerate(zip(labels, default_values)):
             ttk.Label(settings_frame, text=label).grid(row=i, column=0,

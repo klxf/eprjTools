@@ -4,7 +4,7 @@ from tkinter import messagebox
 
 
 def list_eprj_files(directory):
-    return [f for f in os.listdir(directory) if f.endswith('.eprj')]
+    return [f for f in os.listdir(directory) if (f.endswith('.eprj') or f.endswith('.eprj2') or f.endswith('.eprj_backup'))]
 
 
 def move_file(src, dst):

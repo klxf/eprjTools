@@ -4,6 +4,7 @@ from tkinter import ttk
 from utils.file_operations import list_eprj_files
 from utils.wastebasket_manager import WastebasketManager
 
+
 class WastebasketWindow:
     def __init__(self, parent, directory, main_window):
         self.top = tk.Toplevel(parent)
@@ -17,11 +18,11 @@ class WastebasketWindow:
         y = (screen_height - window_height) // 2
         self.top.geometry(f"{window_width}x{window_height}+{x}+{y}")
         self.top.resizable(False, False)
-        
+
         self.directory = directory
         self.main_window = main_window
         self.wastebasket_manager = WastebasketManager(directory)
-        
+
         self.setup_ui()
         self.load_files()
 
@@ -33,7 +34,7 @@ class WastebasketWindow:
         self.listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
         scrollbar = ttk.Scrollbar(self.frame, orient="vertical",
-                                command=self.listbox.yview)
+                                  command=self.listbox.yview)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.listbox.config(yscrollcommand=scrollbar.set)
 
@@ -41,13 +42,13 @@ class WastebasketWindow:
         button_frame.pack(fill=tk.X)
 
         restore_button = ttk.Button(button_frame, text="还原",
-                                  command=self.restore_file,
-                                  style='success.TButton')
+                                    command=self.restore_file,
+                                    style='success.TButton')
         restore_button.pack(side=tk.LEFT, padx=5)
 
         delete_button = ttk.Button(button_frame, text="删除",
-                                 command=self.delete_file,
-                                 style='danger.TButton')
+                                   command=self.delete_file,
+                                   style='danger.TButton')
         delete_button.pack(side=tk.LEFT, padx=5)
 
     def load_files(self):

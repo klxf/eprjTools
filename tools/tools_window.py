@@ -3,6 +3,7 @@ import tkinter as tk
 from tkinter import ttk
 from .image_exporter import ImageExporterTool
 from .eda_version_checker import VersionCheckerTool
+from .eda_version_checker_v3 import VersionCheckerToolV3
 
 
 class ToolsWindow:
@@ -21,6 +22,7 @@ class ToolsWindow:
         """注册所有可用的工具"""
         return [
             ImageExporterTool,
+            VersionCheckerToolV3,
             VersionCheckerTool,
         ]
 

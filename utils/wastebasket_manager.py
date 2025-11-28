@@ -15,7 +15,7 @@ class WastebasketManager:
     def list_files(self):
         """获取回收站中的所有.eprj文件"""
         return [f for f in os.listdir(self.wastebasket_path)
-                if f.endswith('.eprj')]
+                if f.endswith('.eprj') or f.endswith('.eprj2') or f.endswith('.eprj_backup')]
 
     def move_to_wastebasket(self, file_name):
         """将文件移动到回收站"""
